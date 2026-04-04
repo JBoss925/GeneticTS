@@ -3,9 +3,8 @@ import {
   createInitialSimulationState,
   defaultSimulationConfig,
   evolveSimulation,
-  rerollTarget,
+  reconfigureSimulation,
   simulationBounds,
-  type EvaluatedAttempt,
   type GeneticSimulationConfig,
   type GeneticSimulationState,
   type Point
@@ -22,22 +21,42 @@ const configMeta = [
   { key: "gravityStrength", label: "Gravity", min: 0.2, max: 1.8, step: 0.02, format: (value: number) => value.toFixed(2) },
   { key: "ballRadius", label: "Ball size", min: 8, max: 24, step: 1, format: (value: number) => `${value}px` },
   { key: "windDirection", label: "Wind direction", min: -180, max: 180, step: 1, format: (value: number) => `${Math.round(value)}°` },
-  { key: "windMagnitude", label: "Wind magnitude", min: 0, max: 0.8, step: 0.01, format: (value: number) => value.toFixed(2) },
+  { key: "windMagnitude", label: "Wind magnitude", min: 0, max: 1, step: 0.01, format: (value: number) => value.toFixed(2) },
   { key: "mutationRate", label: "Mutation rate", min: 0.02, max: 0.6, step: 0.01, format: (value: number) => `${Math.round(value * 100)}%` },
-  { key: "elitePercent", label: "Elite share", min: 4, max: 36, step: 1, format: (value: number) => `${Math.round(value)}%` },
-  { key: "simulationSpeed", label: "Generations/sec", min: 0.4, max: 6, step: 0.1, format: (value: number) => value.toFixed(1) }
+  { key: "elitePercent", label: "Elite share", min: 4, max: 36, step: 1, format: (value: number) => `${Math.round(value)}%` }
 ] as const;
 
 function clampIndex(index: number, length: number) {
   return Math.min(Math.max(index, 0), Math.max(0, length - 1));
 }
 
-function useAnimatedBall(path: Point[]) {
+function getPointDelta(from: Point, to: Point) {
+  return {
+    x: to.x - from.x,
+    y: to.y - from.y
+  };
+}
+
+function getMagnitude(vector: Point) {
+  return Math.hypot(vector.x, vector.y);
+}
+
+const minimumReplayDurationMs = 800;
+const replayFramesPerMillisecond = 0.06;
+
+function useAnimatedBall(path: Point[], onCycleComplete?: () => void) {
   const [frame, setFrame] = useState(0);
   const frameRef = useRef(0);
+  const cycleCountRef = useRef(0);
+  const onCycleCompleteRef = useRef(onCycleComplete);
+
+  useEffect(() => {
+    onCycleCompleteRef.current = onCycleComplete;
+  }, [onCycleComplete]);
 
   useEffect(() => {
     frameRef.current = 0;
+    cycleCountRef.current = 0;
     setFrame(0);
   }, [path]);
 
@@ -56,7 +75,22 @@ function useAnimatedBall(path: Point[]) {
 
       const delta = timestamp - previousTimestamp;
       previousTimestamp = timestamp;
-      const current = frameRef.current + delta * 0.018;
+      const pathLength = Math.max(path.length, 1);
+      const current = frameRef.current + delta * replayFramesPerMillisecond;
+
+      if (pathLength > 1) {
+        const minimumCycles = Math.max(
+          1,
+          Math.ceil((minimumReplayDurationMs * replayFramesPerMillisecond) / pathLength)
+        );
+        const cycleCount = Math.floor(current / pathLength);
+
+        if (cycleCount > cycleCountRef.current && cycleCount >= minimumCycles) {
+          cycleCountRef.current = cycleCount;
+          onCycleCompleteRef.current?.();
+        }
+      }
+
       frameRef.current = current;
       setFrame(current);
       animationFrame = window.requestAnimationFrame(tick);
@@ -67,8 +101,18 @@ function useAnimatedBall(path: Point[]) {
     return () => window.cancelAnimationFrame(animationFrame);
   }, [path]);
 
-  const index = clampIndex(Math.floor(frame) % Math.max(path.length, 1), path.length);
-  return path[index] ?? simulationBounds.launchPoint;
+  const pathLength = Math.max(path.length, 1);
+  const index = clampIndex(Math.floor(frame) % pathLength, path.length);
+  const point = path[index] ?? simulationBounds.launchPoint;
+  const nextPoint =
+    path[path.length <= 1 ? index : (index + 1) % path.length] ?? point;
+  const velocity = getPointDelta(point, nextPoint);
+
+  return {
+    point,
+    velocity,
+    speed: getMagnitude(velocity)
+  };
 }
 
 function getPolyline(points: Point[]) {
@@ -80,36 +124,58 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
   const [simulation, setSimulation] = useState<GeneticSimulationState>(() =>
     createInitialSimulationState(defaultSimulationConfig)
   );
+  const [isPaused, setIsPaused] = useState(false);
+  const pendingSimulationRef = useRef<GeneticSimulationState | null>(null);
+  const isPausedRef = useRef(isPaused);
+  const solvedRef = useRef(simulation.lastSummary.solved);
+
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+
+  useEffect(() => {
+    solvedRef.current = simulation.lastSummary.solved;
+  }, [simulation.lastSummary.solved]);
 
   const bestAttempt = simulation.lastSummary.bestAttempt;
-  const animatedBall = useAnimatedBall(bestAttempt.path);
+  const animatedBall = useAnimatedBall(bestAttempt.path, () => {
+    if (isPausedRef.current || solvedRef.current) {
+      return;
+    }
+
+    if (pendingSimulationRef.current) {
+      setSimulation(pendingSimulationRef.current);
+      pendingSimulationRef.current = null;
+    }
+  });
   const topAttempts = useMemo(
     () => simulation.lastSummary.attempts.slice(0, config.ghostCount),
     [config.ghostCount, simulation.lastSummary.attempts]
   );
 
   useEffect(() => {
-    if (simulation.lastSummary.solved) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      setSimulation((current) => evolveSimulation(current, config));
-    }, Math.max(90, 1000 / config.simulationSpeed));
-
-    return () => window.clearTimeout(timeout);
-  }, [config, simulation]);
+    pendingSimulationRef.current =
+      simulation.lastSummary.solved || isPaused
+        ? null
+        : evolveSimulation(simulation, config);
+  }, [config, isPaused, simulation]);
 
   const updateConfig = <K extends keyof GeneticSimulationConfig>(key: K, value: number) => {
     const nextConfig = { ...config, [key]: value };
     setConfig(nextConfig);
-    setSimulation(createInitialSimulationState(nextConfig, Date.now()));
+    setIsPaused(false);
+    setSimulation((current) => reconfigureSimulation(current, nextConfig, Date.now()));
   };
 
-  const reroll = () => setSimulation(rerollTarget(config, Date.now()));
-  const resetPopulation = () => setSimulation(createInitialSimulationState(config, Date.now()));
+  const redoSimulation = () => {
+    setIsPaused(false);
+    setSimulation((current) =>
+      createInitialSimulationState(config, Date.now(), current.target)
+    );
+  };
   const resetAll = () => {
     setConfig(defaultSimulationConfig);
+    setIsPaused(false);
     setSimulation(createInitialSimulationState(defaultSimulationConfig, Date.now()));
   };
 
@@ -117,6 +183,26 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
     config.gravityStrength + Math.sin((config.windDirection * Math.PI) / 180) * config.windMagnitude,
     Math.cos((config.windDirection * Math.PI) / 180) * config.windMagnitude
   );
+  const windAngleRadians = (config.windDirection * Math.PI) / 180;
+  const displayedWindLength = 16 + config.windMagnitude * 13.6;
+  const windVector = {
+    x: Math.cos(windAngleRadians) * displayedWindLength,
+    y: Math.sin(windAngleRadians) * displayedWindLength
+  };
+  const velocityVectorScale = 4.5;
+  const velocityVector = {
+    x: bestAttempt.genome.vx * velocityVectorScale,
+    y: bestAttempt.genome.vy * velocityVectorScale
+  };
+  const velocityVectorLength = getMagnitude(velocityVector);
+  const launchSpeed = getMagnitude({
+    x: bestAttempt.genome.vx,
+    y: bestAttempt.genome.vy
+  });
+  const velocityLabelPosition = {
+    x: simulationBounds.launchPoint.x + velocityVector.x + 10,
+    y: simulationBounds.launchPoint.y + velocityVector.y - 8
+  };
 
   return (
     <div className={standalone ? "genetic-page genetic-page--standalone" : "genetic-page"}>
@@ -166,6 +252,10 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                 <span className="genetic-chip">
                   Field angle {Math.round((fieldAngle * 180) / Math.PI)}°
                 </span>
+                {simulation.lastSummary.solved ? (
+                  <span className="genetic-chip genetic-chip--accent">Solved target</span>
+                ) : null}
+                {isPaused ? <span className="genetic-chip genetic-chip--paused">Paused on best throw</span> : null}
               </div>
             </div>
 
@@ -180,6 +270,28 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                     <stop offset="0%" stopColor="#7dffb2" />
                     <stop offset="100%" stopColor="#2fd7ff" />
                   </linearGradient>
+                  <marker
+                    id="geneticVelocityArrow"
+                    viewBox="0 0 10 10"
+                    refX="8"
+                    refY="5"
+                    markerWidth="7"
+                    markerHeight="7"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#7fd7ff" />
+                  </marker>
+                  <marker
+                    id="geneticWindArrow"
+                    viewBox="0 0 10 10"
+                    refX="8"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M 0 0 L 10 5 L 0 10 L 2.7 5 z" fill="#b8fff2" />
+                  </marker>
                 </defs>
 
                 <rect
@@ -198,7 +310,6 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                   rx="18"
                   className="genetic-scene__bounds"
                 />
-
                 {topAttempts.slice(1).reverse().map((attempt, index) => (
                   <polyline
                     key={`${attempt.genome.vx}-${attempt.genome.vy}-${index}`}
@@ -234,21 +345,75 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                   r={config.ballRadius + 6}
                   className="genetic-scene__launcher"
                 />
+                {velocityVectorLength > 0.1 ? (
+                  <>
+                    <line
+                      x1={simulationBounds.launchPoint.x}
+                      y1={simulationBounds.launchPoint.y}
+                      x2={simulationBounds.launchPoint.x + velocityVector.x}
+                      y2={simulationBounds.launchPoint.y + velocityVector.y}
+                      className="genetic-scene__velocity"
+                      markerEnd="url(#geneticVelocityArrow)"
+                    />
+                    <text
+                      x={velocityLabelPosition.x}
+                      y={velocityLabelPosition.y}
+                      className="genetic-scene__velocity-label"
+                    >
+                      {launchSpeed.toFixed(1)}
+                    </text>
+                  </>
+                ) : null}
                 <circle
-                  cx={animatedBall.x}
-                  cy={animatedBall.y}
+                  cx={animatedBall.point.x}
+                  cy={animatedBall.point.y}
                   r={config.ballRadius}
                   className="genetic-scene__ball"
                 />
+                <g transform={`translate(${simulationBounds.width - 132} 28)`}>
+                  <rect
+                    x="0"
+                    y="0"
+                    width="104"
+                    height="116"
+                    rx="16"
+                    className="genetic-scene__wind-panel"
+                  />
+                  <text x="16" y="22" className="genetic-scene__wind-label">
+                    Wind
+                  </text>
+                  <line
+                    x1="52"
+                    y1="54"
+                    x2={52 + windVector.x}
+                    y2={54 + windVector.y}
+                    className="genetic-scene__wind-vector"
+                    markerEnd="url(#geneticWindArrow)"
+                  />
+                  <text x="52" y="98" textAnchor="middle" className="genetic-scene__wind-value">
+                    {config.windMagnitude.toFixed(2)} @ {Math.round(config.windDirection)}°
+                  </text>
+                </g>
               </svg>
             </div>
 
             <div className="genetic-actions">
-              <button type="button" className="genetic-button" onClick={reroll}>
-                Reroll target
+              <button
+                type="button"
+                className={isPaused ? "genetic-button genetic-button--secondary" : "genetic-button"}
+                onClick={() => {
+                  if (simulation.lastSummary.solved) {
+                    return;
+                  }
+
+                  setIsPaused((current) => !current);
+                }}
+                disabled={simulation.lastSummary.solved}
+              >
+                {isPaused ? "Resume evolution" : "Pause evolution"}
               </button>
-              <button type="button" className="genetic-button" onClick={resetPopulation}>
-                Reset population
+              <button type="button" className="genetic-button" onClick={redoSimulation}>
+                Redo simulation
               </button>
               <button type="button" className="genetic-button genetic-button--secondary" onClick={resetAll}>
                 Reset defaults

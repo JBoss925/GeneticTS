@@ -87,6 +87,8 @@ export const defaultSimulationConfig: GeneticSimulationConfig = {
   ghostCount: 5
 };
 
+const solvedHitRateThreshold = 0.85;
+
 type RandomSource = () => number;
 
 function createMulberry32(seed: number): RandomSource {
@@ -149,8 +151,8 @@ function createWalls() {
 
 function createRandomGenome(random: RandomSource): VelocityGenome {
   return {
-    vx: randomBetween(random, 4.5, 15.5),
-    vy: randomBetween(random, -16, -2.5)
+    vx: randomBetween(random, 8, 12),
+    vy: randomBetween(random, -12, -6)
   };
 }
 
@@ -206,12 +208,53 @@ function evaluateGenome(
   let hit = false;
   let hitFrame: number | null = null;
   let restingFrames = 0;
+  let wallHitCount = 0;
+  let touchingLeft = false;
+  let touchingRight = false;
+  let touchingTop = false;
+  let touchingBottom = false;
 
   for (let frame = 0; frame < config.attemptFrames; frame += 1) {
     Engine.update(engine, 1000 / 60);
 
     const position = { x: ball.position.x, y: ball.position.y };
     path.push(position);
+
+    const leftBoundary = simulationBounds.wallThickness + config.ballRadius;
+    const rightBoundary = simulationBounds.width - simulationBounds.wallThickness - config.ballRadius;
+    const topBoundary = simulationBounds.wallThickness + config.ballRadius;
+    const bottomBoundary = simulationBounds.height - simulationBounds.wallThickness - config.ballRadius;
+    const contactSlack = 1.5;
+
+    const nextTouchingLeft = position.x <= leftBoundary + contactSlack;
+    const nextTouchingRight = position.x >= rightBoundary - contactSlack;
+    const nextTouchingTop = position.y <= topBoundary + contactSlack;
+    const nextTouchingBottom = position.y >= bottomBoundary - contactSlack;
+
+    if (nextTouchingLeft && !touchingLeft) {
+      wallHitCount += 1;
+    }
+
+    if (nextTouchingRight && !touchingRight) {
+      wallHitCount += 1;
+    }
+
+    if (nextTouchingTop && !touchingTop) {
+      wallHitCount += 1;
+    }
+
+    if (nextTouchingBottom && !touchingBottom) {
+      wallHitCount += 1;
+    }
+
+    touchingLeft = nextTouchingLeft;
+    touchingRight = nextTouchingRight;
+    touchingTop = nextTouchingTop;
+    touchingBottom = nextTouchingBottom;
+
+    if (wallHitCount >= 4) {
+      break;
+    }
 
     const distance = Vector.magnitude(
       Vector.sub(position, { x: target.x, y: target.y })
@@ -246,9 +289,11 @@ function evaluateGenome(
     return total + Vector.magnitude(Vector.sub(point, path[index - 1]));
   }, 0);
 
+  const closenessScore = 5000 / (1 + minDistance);
+  const travelTiebreaker = Math.min(pathDistance, 900) * 0.0025;
   const fitness = hit
     ? 10000 + (config.attemptFrames - (hitFrame ?? config.attemptFrames)) * 18
-    : 1800 / (1 + minDistance) - pathDistance * 0.012;
+    : closenessScore + travelTiebreaker;
 
   Composite.clear(engine.world, false);
   Engine.clear(engine);
@@ -279,6 +324,10 @@ function evaluateGeneration(
     bestAttempt: attempts[0],
     hitCount
   };
+}
+
+function isGenerationSolved(hitCount: number, populationSize: number) {
+  return hitCount / populationSize >= solvedHitRateThreshold;
 }
 
 function breedNextPopulation(
@@ -314,8 +363,8 @@ function breedNextPopulation(
       child.vy += jitter(random, 2.2 + config.gravityStrength * 1.4);
     }
 
-    child.vx = clamp(child.vx, 2.2, 18);
-    child.vy = clamp(child.vy, -18, 3.5);
+    child.vx = clamp(child.vx, 2.2, 40);
+    child.vy = clamp(child.vy, -40, 12);
     nextPopulation.push(child);
   }
 
@@ -326,13 +375,31 @@ function breedNextPopulation(
   return nextPopulation;
 }
 
+function resizePopulationForConfig(
+  current: GeneticSimulationState,
+  config: GeneticSimulationConfig,
+  random: RandomSource
+) {
+  const rankedGenomes = current.lastSummary.attempts.map((attempt) => ({ ...attempt.genome }));
+  const nextPopulation = rankedGenomes.slice(0, Math.min(config.populationSize, rankedGenomes.length));
+
+  while (nextPopulation.length < config.populationSize) {
+    nextPopulation.push(createRandomGenome(random));
+  }
+
+  return nextPopulation;
+}
+
 export function createInitialSimulationState(
   config: GeneticSimulationConfig = defaultSimulationConfig,
-  seed = Date.now()
+  seed = Date.now(),
+  targetOverride?: Target
 ): GeneticSimulationState {
   const random = createMulberry32(seed);
   const population = createPopulation(random, config.populationSize);
-  const target = createTarget(random, config);
+  const target = targetOverride
+    ? { ...targetOverride, radius: config.targetRadius }
+    : createTarget(random, config);
   const evaluated = evaluateGeneration(population, target, config);
 
   return {
@@ -340,14 +407,14 @@ export function createInitialSimulationState(
     generation: 1,
     target,
     population,
-    solvedStreak: evaluated.hitCount === config.populationSize ? 1 : 0,
+    solvedStreak: isGenerationSolved(evaluated.hitCount, config.populationSize) ? 1 : 0,
     bestEverFitness: evaluated.bestAttempt.fitness,
     lastSummary: {
       generation: 1,
       attempts: evaluated.attempts,
       bestAttempt: evaluated.bestAttempt,
       hitCount: evaluated.hitCount,
-      solvedStreak: evaluated.hitCount === config.populationSize ? 1 : 0,
+      solvedStreak: isGenerationSolved(evaluated.hitCount, config.populationSize) ? 1 : 0,
       solved: false
     }
   };
@@ -364,8 +431,9 @@ export function evolveSimulation(
   const random = createMulberry32(current.seed + current.generation * 101);
   const nextPopulation = breedNextPopulation(current.lastSummary.attempts, config, random);
   const evaluated = evaluateGeneration(nextPopulation, current.target, config);
-  const solvedStreak =
-    evaluated.hitCount === config.populationSize ? current.solvedStreak + 1 : 0;
+  const solvedStreak = isGenerationSolved(evaluated.hitCount, config.populationSize)
+    ? current.solvedStreak + 1
+    : 0;
   const solved = solvedStreak >= config.successStreakTarget;
 
   return {
@@ -382,6 +450,37 @@ export function evolveSimulation(
       hitCount: evaluated.hitCount,
       solvedStreak,
       solved
+    }
+  };
+}
+
+export function reconfigureSimulation(
+  current: GeneticSimulationState,
+  config: GeneticSimulationConfig,
+  seed = Date.now()
+): GeneticSimulationState {
+  const random = createMulberry32(seed);
+  const population = resizePopulationForConfig(current, config, random);
+  const target = {
+    ...current.target,
+    radius: config.targetRadius
+  };
+  const evaluated = evaluateGeneration(population, target, config);
+
+  return {
+    seed: current.seed,
+    generation: current.generation,
+    target,
+    population,
+    solvedStreak: 0,
+    bestEverFitness: evaluated.bestAttempt.fitness,
+    lastSummary: {
+      generation: current.generation,
+      attempts: evaluated.attempts,
+      bestAttempt: evaluated.bestAttempt,
+      hitCount: evaluated.hitCount,
+      solvedStreak: 0,
+      solved: false
     }
   };
 }

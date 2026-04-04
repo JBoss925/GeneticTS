@@ -144,6 +144,18 @@ input {
   color: #c7d8f5;
 }
 
+.genetic-chip--paused {
+  background: rgba(255, 184, 76, 0.12);
+  border-color: rgba(255, 184, 76, 0.28);
+  color: #ffd9a4;
+}
+
+.genetic-chip--accent {
+  background: rgba(255, 184, 76, 0.18);
+  border-color: rgba(255, 184, 76, 0.34);
+  color: #ffe2b4;
+}
+
 .genetic-scene {
   border-radius: 24px;
   overflow: hidden;
@@ -166,6 +178,36 @@ input {
   fill: rgba(9, 17, 30, 0.72);
   stroke: rgba(121, 158, 219, 0.2);
   stroke-width: 2;
+}
+
+.genetic-scene__wind-panel {
+  fill: rgba(7, 15, 28, 0.8);
+  stroke: rgba(121, 158, 219, 0.18);
+  stroke-width: 1.5;
+}
+
+.genetic-scene__wind-label,
+.genetic-scene__wind-value {
+  fill: #cfe8ff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.genetic-scene__wind-label {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  fill: #8fdfff;
+}
+
+.genetic-scene__wind-value {
+  fill: #b9c9e6;
+}
+
+.genetic-scene__wind-vector {
+  stroke: #aef7e5;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0.92;
 }
 
 .genetic-scene__ghost {
@@ -197,6 +239,23 @@ input {
   stroke-width: 2;
 }
 
+.genetic-scene__velocity {
+  stroke: #7fd7ff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0.95;
+}
+
+.genetic-scene__velocity-label {
+  fill: #d9f5ff;
+  font-size: 15px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: rgba(5, 9, 20, 0.9);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
 .genetic-scene__ball {
   fill: #fff5e6;
   stroke: rgba(255, 183, 84, 0.75);
@@ -226,10 +285,23 @@ input {
   border-color: rgba(87, 208, 255, 0.28);
 }
 
+.genetic-button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .genetic-button--secondary {
   background: linear-gradient(135deg, rgba(255, 184, 76, 0.96), rgba(255, 120, 56, 0.96));
   color: #16243b;
   border-color: rgba(255, 184, 76, 0.36);
+}
+
+.genetic-button--secondary:hover,
+.genetic-button--secondary:focus-visible {
+  background: linear-gradient(135deg, rgba(255, 184, 76, 1), rgba(255, 120, 56, 1));
+  border-color: rgba(255, 184, 76, 0.42);
+  color: #f6fbff;
 }
 
 .genetic-card--controls {
