@@ -250,8 +250,8 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
             <span className="genetic-shell__eyebrow">Interactive simulation</span>
             <h1>Genetic Algorithms in TypeScript</h1>
             <p>
-              A genetic algorithm learns a launch velocity that sends a ball into a target, then
-              adapts as you change the physics.
+              This simulation evolves a launch velocity for a ball until it can reliably hit the
+              target inside the box.
             </p>
           </div>
           <div className="genetic-shell__intro-stats">
@@ -281,7 +281,7 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
             <div className="genetic-scene__header">
               <div>
                 <span className="genetic-section-label">Live scene</span>
-                <h2>{simulation.lastSummary.solved ? "Locked on target" : "Learning the throw"}</h2>
+                <h2>{simulation.lastSummary.solved ? "Target solved" : "Current best throw"}</h2>
               </div>
               <div className="genetic-chip-row">
                 <span className="genetic-chip">
@@ -511,10 +511,10 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
           <aside className="genetic-card genetic-card--controls">
             <div className="genetic-controls__intro">
               <span className="genetic-section-label">Controls</span>
-              <h2>Change the physics, then watch it adapt.</h2>
+              <h2>Adjust the setup.</h2>
               <p>
-                Tweak the rules or drag the target around and watch the current population adjust
-                instead of starting over.
+                Change the physics, resize the ball or target, or drag the target to a new spot.
+                The current population will keep adapting to the updated setup.
               </p>
             </div>
 
