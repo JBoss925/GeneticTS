@@ -226,11 +226,27 @@ input {
 
 .genetic-scene__target-halo {
   fill: rgba(84, 242, 180, 0.16);
+  cursor: grab;
+  touch-action: none;
 }
 
 .genetic-scene__target {
   stroke: rgba(234, 255, 247, 0.9);
   stroke-width: 2;
+  cursor: grab;
+  touch-action: none;
+}
+
+.genetic-scene__target-drag-icon {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  stroke: rgba(21, 38, 68, 0.92);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: rgba(21, 38, 68, 0.92);
+  opacity: 0.92;
 }
 
 .genetic-scene__launcher {
@@ -312,6 +328,11 @@ input {
 .genetic-controls {
   display: grid;
   gap: 14px;
+}
+
+.genetic-controls__reset {
+  justify-self: start;
+  margin-top: 4px;
 }
 
 .genetic-slider {

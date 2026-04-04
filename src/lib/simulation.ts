@@ -72,6 +72,14 @@ export const simulationBounds = {
   safeInset: 48
 };
 
+const windPanelBounds = {
+  x: simulationBounds.width - 132,
+  y: 28,
+  width: 104,
+  height: 116,
+  padding: 14
+};
+
 export const defaultSimulationConfig: GeneticSimulationConfig = {
   populationSize: 42,
   targetRadius: 22,
@@ -87,7 +95,7 @@ export const defaultSimulationConfig: GeneticSimulationConfig = {
   ghostCount: 5
 };
 
-const solvedHitRateThreshold = 0.85;
+const solvedHitRateThreshold = 0.75;
 
 type RandomSource = () => number;
 
@@ -161,17 +169,57 @@ function createPopulation(random: RandomSource, populationSize: number) {
 }
 
 function createTarget(random: RandomSource, config: GeneticSimulationConfig): Target {
-  const { width, height, launchPoint, safeInset } = simulationBounds;
-  const radius = config.targetRadius;
-  const minimumX = Math.max(launchPoint.x + 120, safeInset + radius);
-  const maximumX = width - safeInset - radius;
-  const minimumY = safeInset + radius;
-  const maximumY = height - safeInset - radius;
+  const bounds = getTargetBounds(config);
 
   return {
-    x: randomBetween(random, minimumX, maximumX),
-    y: randomBetween(random, minimumY, maximumY),
-    radius
+    x: randomBetween(random, bounds.minimumX, bounds.maximumX),
+    y: randomBetween(random, bounds.minimumY, bounds.maximumY),
+    radius: config.targetRadius
+  };
+}
+
+function getTargetBounds(config: GeneticSimulationConfig) {
+  const { width, height, launchPoint, safeInset } = simulationBounds;
+  const radius = config.targetRadius;
+
+  return {
+    minimumX: Math.max(launchPoint.x + 120, safeInset + radius),
+    maximumX: width - safeInset - radius,
+    minimumY: safeInset + radius,
+    maximumY: height - safeInset - radius
+  };
+}
+
+function keepTargetOutOfWindPanel(target: Target, config: GeneticSimulationConfig): Target {
+  const radius = config.targetRadius;
+  const panelLeft = windPanelBounds.x - windPanelBounds.padding - radius;
+  const panelRight = windPanelBounds.x + windPanelBounds.width + windPanelBounds.padding + radius;
+  const panelTop = windPanelBounds.y - windPanelBounds.padding - radius;
+  const panelBottom = windPanelBounds.y + windPanelBounds.height + windPanelBounds.padding + radius;
+
+  const intersectsPanel =
+    target.x >= panelLeft &&
+    target.x <= panelRight &&
+    target.y >= panelTop &&
+    target.y <= panelBottom;
+
+  if (!intersectsPanel) {
+    return target;
+  }
+
+  const spaceLeft = Math.abs(target.x - panelLeft);
+  const spaceBottom = Math.abs(panelBottom - target.y);
+
+  if (spaceLeft <= spaceBottom) {
+    return {
+      ...target,
+      x: panelLeft
+    };
+  }
+
+  return {
+    ...target,
+    y: panelBottom
   };
 }
 
@@ -457,14 +505,17 @@ export function evolveSimulation(
 export function reconfigureSimulation(
   current: GeneticSimulationState,
   config: GeneticSimulationConfig,
-  seed = Date.now()
+  seed = Date.now(),
+  targetOverride?: Target
 ): GeneticSimulationState {
   const random = createMulberry32(seed);
   const population = resizePopulationForConfig(current, config, random);
-  const target = {
-    ...current.target,
-    radius: config.targetRadius
-  };
+  const target = targetOverride
+    ? clampTargetToBounds(targetOverride, config)
+    : {
+        ...current.target,
+        radius: config.targetRadius
+      };
   const evaluated = evaluateGeneration(population, target, config);
 
   return {
@@ -490,4 +541,16 @@ export function rerollTarget(
   seed = Date.now()
 ): GeneticSimulationState {
   return createInitialSimulationState(config, seed);
+}
+
+export function clampTargetToBounds(target: Target, config: GeneticSimulationConfig): Target {
+  const bounds = getTargetBounds(config);
+
+  const clamped = {
+    x: clamp(target.x, bounds.minimumX, bounds.maximumX),
+    y: clamp(target.y, bounds.minimumY, bounds.maximumY),
+    radius: config.targetRadius
+  };
+
+  return keepTargetOutOfWindPanel(clamped, config);
 }

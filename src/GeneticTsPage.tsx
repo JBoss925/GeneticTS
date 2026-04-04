@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
+  clampTargetToBounds,
   createInitialSimulationState,
   defaultSimulationConfig,
   evolveSimulation,
@@ -119,15 +120,31 @@ function getPolyline(points: Point[]) {
   return points.map((point) => `${point.x},${point.y}`).join(" ");
 }
 
+function getSvgPointFromPointer(
+  event: ReactPointerEvent<SVGSVGElement | SVGCircleElement | SVGGElement>,
+  svg: SVGSVGElement
+) {
+  const rect = svg.getBoundingClientRect();
+  const scaleX = simulationBounds.width / rect.width;
+  const scaleY = simulationBounds.height / rect.height;
+
+  return {
+    x: (event.clientX - rect.left) * scaleX,
+    y: (event.clientY - rect.top) * scaleY
+  };
+}
+
 function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
   const [config, setConfig] = useState<GeneticSimulationConfig>(defaultSimulationConfig);
   const [simulation, setSimulation] = useState<GeneticSimulationState>(() =>
     createInitialSimulationState(defaultSimulationConfig)
   );
   const [isPaused, setIsPaused] = useState(false);
+  const [isDraggingTarget, setIsDraggingTarget] = useState(false);
   const pendingSimulationRef = useRef<GeneticSimulationState | null>(null);
   const isPausedRef = useRef(isPaused);
   const solvedRef = useRef(simulation.lastSummary.solved);
+  const sceneSvgRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
     isPausedRef.current = isPaused;
@@ -167,6 +184,25 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
     setSimulation((current) => reconfigureSimulation(current, nextConfig, Date.now()));
   };
 
+  const moveTarget = (point: Point) => {
+    setIsPaused(false);
+    setSimulation((current) =>
+      reconfigureSimulation(
+        current,
+        config,
+        Date.now(),
+        clampTargetToBounds(
+          {
+            x: point.x,
+            y: point.y,
+            radius: config.targetRadius
+          },
+          config
+        )
+      )
+    );
+  };
+
   const redoSimulation = () => {
     setIsPaused(false);
     setSimulation((current) =>
@@ -176,7 +212,9 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
   const resetAll = () => {
     setConfig(defaultSimulationConfig);
     setIsPaused(false);
-    setSimulation(createInitialSimulationState(defaultSimulationConfig, Date.now()));
+    setSimulation((current) =>
+      reconfigureSimulation(current, defaultSimulationConfig, Date.now())
+    );
   };
 
   const fieldAngle = Math.atan2(
@@ -261,9 +299,23 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
 
             <div className="genetic-scene">
               <svg
+                ref={sceneSvgRef}
                 viewBox={`0 0 ${simulationBounds.width} ${simulationBounds.height}`}
                 role="img"
                 aria-label="Genetic algorithm launch simulation"
+                onPointerMove={(event) => {
+                  if (!isDraggingTarget || !sceneSvgRef.current) {
+                    return;
+                  }
+
+                  moveTarget(getSvgPointFromPointer(event, sceneSvgRef.current));
+                }}
+                onPointerUp={() => {
+                  setIsDraggingTarget(false);
+                }}
+                onPointerLeave={() => {
+                  setIsDraggingTarget(false);
+                }}
               >
                 <defs>
                   <linearGradient id="geneticTargetGlow" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -331,6 +383,15 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                   cy={simulation.target.y}
                   r={simulation.target.radius + 10}
                   className="genetic-scene__target-halo"
+                  onPointerDown={(event) => {
+                    if (!sceneSvgRef.current) {
+                      return;
+                    }
+
+                    event.preventDefault();
+                    setIsDraggingTarget(true);
+                    moveTarget(getSvgPointFromPointer(event, sceneSvgRef.current));
+                  }}
                 />
                 <circle
                   cx={simulation.target.x}
@@ -338,7 +399,36 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                   r={simulation.target.radius}
                   fill="url(#geneticTargetGlow)"
                   className="genetic-scene__target"
+                  onPointerDown={(event) => {
+                    if (!sceneSvgRef.current) {
+                      return;
+                    }
+
+                    event.preventDefault();
+                    setIsDraggingTarget(true);
+                    moveTarget(getSvgPointFromPointer(event, sceneSvgRef.current));
+                  }}
                 />
+                <g
+                  transform={`translate(${simulation.target.x} ${simulation.target.y})`}
+                  className="genetic-scene__target-drag-icon"
+                  onPointerDown={(event) => {
+                    if (!sceneSvgRef.current) {
+                      return;
+                    }
+
+                    event.preventDefault();
+                    setIsDraggingTarget(true);
+                    moveTarget(getSvgPointFromPointer(event, sceneSvgRef.current));
+                  }}
+                >
+                  <line x1="-8" y1="0" x2="8" y2="0" />
+                  <line x1="0" y1="-8" x2="0" y2="8" />
+                  <path d="M -10 0 L -6 -2.5 L -6 2.5 Z" />
+                  <path d="M 10 0 L 6 -2.5 L 6 2.5 Z" />
+                  <path d="M 0 -10 L -2.5 -6 L 2.5 -6 Z" />
+                  <path d="M 0 10 L -2.5 6 L 2.5 6 Z" />
+                </g>
                 <circle
                   cx={simulationBounds.launchPoint.x}
                   cy={simulationBounds.launchPoint.y}
@@ -412,11 +502,8 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
               >
                 {isPaused ? "Resume evolution" : "Pause evolution"}
               </button>
-              <button type="button" className="genetic-button" onClick={redoSimulation}>
-                Redo simulation
-              </button>
-              <button type="button" className="genetic-button genetic-button--secondary" onClick={resetAll}>
-                Reset defaults
+              <button type="button" className="genetic-button genetic-button--secondary" onClick={redoSimulation}>
+                Restart simulation
               </button>
             </div>
           </section>
@@ -426,8 +513,8 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
               <span className="genetic-section-label">Controls</span>
               <h2>Change the physics, then watch it adapt.</h2>
               <p>
-                Every slider resets the population so the algorithm can relearn the throw under the
-                new rules.
+                Tweak the rules or drag the target around and watch the current population adjust
+                instead of starting over.
               </p>
             </div>
 
@@ -448,6 +535,13 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                   />
                 </label>
               ))}
+              <button
+                type="button"
+                className="genetic-button genetic-button--secondary genetic-controls__reset"
+                onClick={resetAll}
+              >
+                Reset defaults
+              </button>
             </div>
           </aside>
         </div>
