@@ -168,6 +168,7 @@ input {
   width: 100%;
   height: auto;
   aspect-ratio: 760 / 460;
+  touch-action: none;
 }
 
 .genetic-scene__backdrop {

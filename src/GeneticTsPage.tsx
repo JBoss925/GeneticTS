@@ -145,6 +145,7 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
   const isPausedRef = useRef(isPaused);
   const solvedRef = useRef(simulation.lastSummary.solved);
   const sceneSvgRef = useRef<SVGSVGElement | null>(null);
+  const activeTargetPointerIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     isPausedRef.current = isPaused;
@@ -201,6 +202,29 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
         )
       )
     );
+  };
+
+  const startTargetDrag = (
+    event: ReactPointerEvent<SVGCircleElement | SVGGElement>
+  ) => {
+    if (!sceneSvgRef.current) {
+      return;
+    }
+
+    event.preventDefault();
+    activeTargetPointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsDraggingTarget(true);
+    moveTarget(getSvgPointFromPointer(event, sceneSvgRef.current));
+  };
+
+  const stopTargetDrag = (pointerId: number) => {
+    if (activeTargetPointerIdRef.current !== pointerId) {
+      return;
+    }
+
+    activeTargetPointerIdRef.current = null;
+    setIsDraggingTarget(false);
   };
 
   const redoSimulation = () => {
@@ -304,17 +328,22 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                 role="img"
                 aria-label="Genetic algorithm launch simulation"
                 onPointerMove={(event) => {
-                  if (!isDraggingTarget || !sceneSvgRef.current) {
+                  if (
+                    !isDraggingTarget ||
+                    activeTargetPointerIdRef.current !== event.pointerId ||
+                    !sceneSvgRef.current
+                  ) {
                     return;
                   }
 
+                  event.preventDefault();
                   moveTarget(getSvgPointFromPointer(event, sceneSvgRef.current));
                 }}
-                onPointerUp={() => {
-                  setIsDraggingTarget(false);
+                onPointerUp={(event) => {
+                  stopTargetDrag(event.pointerId);
                 }}
-                onPointerLeave={() => {
-                  setIsDraggingTarget(false);
+                onPointerCancel={(event) => {
+                  stopTargetDrag(event.pointerId);
                 }}
               >
                 <defs>
@@ -383,15 +412,8 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                   cy={simulation.target.y}
                   r={simulation.target.radius + 10}
                   className="genetic-scene__target-halo"
-                  onPointerDown={(event) => {
-                    if (!sceneSvgRef.current) {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    setIsDraggingTarget(true);
-                    moveTarget(getSvgPointFromPointer(event, sceneSvgRef.current));
-                  }}
+                  onPointerDown={startTargetDrag}
+                  onLostPointerCapture={(event) => stopTargetDrag(event.pointerId)}
                 />
                 <circle
                   cx={simulation.target.x}
@@ -399,28 +421,14 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                   r={simulation.target.radius}
                   fill="url(#geneticTargetGlow)"
                   className="genetic-scene__target"
-                  onPointerDown={(event) => {
-                    if (!sceneSvgRef.current) {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    setIsDraggingTarget(true);
-                    moveTarget(getSvgPointFromPointer(event, sceneSvgRef.current));
-                  }}
+                  onPointerDown={startTargetDrag}
+                  onLostPointerCapture={(event) => stopTargetDrag(event.pointerId)}
                 />
                 <g
                   transform={`translate(${simulation.target.x} ${simulation.target.y})`}
                   className="genetic-scene__target-drag-icon"
-                  onPointerDown={(event) => {
-                    if (!sceneSvgRef.current) {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    setIsDraggingTarget(true);
-                    moveTarget(getSvgPointFromPointer(event, sceneSvgRef.current));
-                  }}
+                  onPointerDown={startTargetDrag}
+                  onLostPointerCapture={(event) => stopTargetDrag(event.pointerId)}
                 >
                   <line x1="-8" y1="0" x2="8" y2="0" />
                   <line x1="0" y1="-8" x2="0" y2="8" />
