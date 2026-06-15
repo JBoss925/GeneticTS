@@ -1,14 +1,14 @@
 :root {
   color-scheme: dark;
-  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-family: "Google Sans Flex", "Google Sans", "Segoe UI", system-ui, sans-serif;
 }
 
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top, rgba(87, 208, 255, 0.08), transparent 42%),
-    linear-gradient(180deg, #050914 0%, #09111d 100%);
-  color: #eef4ff;
+    radial-gradient(circle at top, rgba(49, 86, 66, 0.12), transparent 42%),
+    linear-gradient(180deg, #020202 0%, #08080a 100%);
+  color: #f7f7f7;
 }
 
 * {
@@ -31,23 +31,23 @@ input {
 
 .genetic-shell {
   display: grid;
-  gap: 22px;
+  gap: 14px;
 }
 
 .genetic-shell__intro,
 .genetic-card {
-  border-radius: 28px;
-  border: 1px solid rgba(121, 158, 219, 0.18);
-  background: rgba(13, 24, 42, 0.84);
-  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.26);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(12, 12, 14, 0.9);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(14px);
 }
 
 .genetic-shell__intro {
   display: grid;
-  gap: 22px;
+  gap: 16px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 28px;
+  padding: 18px;
   align-items: end;
 }
 
@@ -55,7 +55,7 @@ input {
 .genetic-section-label {
   display: block;
   margin-bottom: 10px;
-  color: #72cfff;
+  color: #8fc9a3;
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 0.78rem;
@@ -76,7 +76,7 @@ input {
 .genetic-controls__intro p {
   margin: 14px 0 0;
   max-width: 42rem;
-  color: #b6c5df;
+  color: #b8bcc4;
   line-height: 1.6;
 }
 
@@ -87,15 +87,15 @@ input {
 }
 
 .genetic-stat {
-  padding: 14px 16px;
-  border-radius: 20px;
-  background: rgba(8, 16, 29, 0.62);
-  border: 1px solid rgba(121, 158, 219, 0.14);
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(8, 8, 10, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .genetic-stat span {
   display: block;
-  color: #9fb1cf;
+  color: #9aa1ad;
   font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -108,13 +108,13 @@ input {
 
 .genetic-shell__layout {
   display: grid;
-  gap: 22px;
+  gap: 14px;
   grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
   align-items: start;
 }
 
 .genetic-card {
-  padding: 24px;
+  padding: 18px;
 }
 
 .genetic-card--scene {
@@ -140,27 +140,27 @@ input {
   padding: 8px 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(121, 158, 219, 0.16);
-  color: #c7d8f5;
+  border: 1px solid rgba(143, 201, 163, 0.18);
+  color: #dce8df;
 }
 
 .genetic-chip--paused {
-  background: rgba(255, 184, 76, 0.12);
-  border-color: rgba(255, 184, 76, 0.28);
-  color: #ffd9a4;
+  background: rgba(49, 86, 66, 0.16);
+  border-color: rgba(143, 201, 163, 0.28);
+  color: #cfead8;
 }
 
 .genetic-chip--accent {
-  background: rgba(255, 184, 76, 0.18);
-  border-color: rgba(255, 184, 76, 0.34);
-  color: #ffe2b4;
+  background: rgba(49, 86, 66, 0.22);
+  border-color: rgba(143, 201, 163, 0.36);
+  color: #f7faf6;
 }
 
 .genetic-scene {
-  border-radius: 24px;
+  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid rgba(121, 158, 219, 0.16);
-  background: linear-gradient(180deg, rgba(8, 16, 29, 0.9), rgba(6, 12, 24, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: linear-gradient(180deg, rgba(12, 12, 14, 0.92), rgba(6, 6, 8, 0.96));
 }
 
 .genetic-scene svg {
@@ -172,24 +172,24 @@ input {
 }
 
 .genetic-scene__backdrop {
-  fill: rgba(6, 13, 24, 0.96);
+  fill: rgba(6, 6, 8, 0.96);
 }
 
 .genetic-scene__bounds {
-  fill: rgba(9, 17, 30, 0.72);
-  stroke: rgba(121, 158, 219, 0.2);
+  fill: rgba(12, 12, 14, 0.72);
+  stroke: rgba(143, 201, 163, 0.2);
   stroke-width: 2;
 }
 
 .genetic-scene__wind-panel {
-  fill: rgba(7, 15, 28, 0.8);
-  stroke: rgba(121, 158, 219, 0.18);
+  fill: rgba(8, 8, 10, 0.82);
+  stroke: rgba(143, 201, 163, 0.18);
   stroke-width: 1.5;
 }
 
 .genetic-scene__wind-label,
 .genetic-scene__wind-value {
-  fill: #cfe8ff;
+  fill: #dce8df;
   font-size: 12px;
   font-weight: 600;
 }
@@ -197,11 +197,11 @@ input {
 .genetic-scene__wind-label {
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  fill: #8fdfff;
+  fill: #8fc9a3;
 }
 
 .genetic-scene__wind-value {
-  fill: #b9c9e6;
+  fill: #b8bcc4;
 }
 
 .genetic-scene__wind-vector {
@@ -251,13 +251,13 @@ input {
 }
 
 .genetic-scene__launcher {
-  fill: rgba(118, 160, 235, 0.28);
-  stroke: rgba(150, 188, 255, 0.72);
+  fill: rgba(143, 201, 163, 0.2);
+  stroke: rgba(143, 201, 163, 0.72);
   stroke-width: 2;
 }
 
 .genetic-scene__velocity {
-  stroke: #7fd7ff;
+  stroke: #8fc9a3;
   stroke-width: 2.5;
   stroke-linecap: round;
   opacity: 0.95;
@@ -287,10 +287,10 @@ input {
 
 .genetic-button {
   padding: 0.9rem 1.1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(121, 158, 219, 0.18);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
   background: rgba(255, 255, 255, 0.04);
-  color: #eef4ff;
+  color: #f7f7f7;
   cursor: pointer;
   transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
 }
@@ -298,8 +298,8 @@ input {
 .genetic-button:hover,
 .genetic-button:focus-visible {
   transform: translateY(-1px);
-  background: rgba(87, 208, 255, 0.12);
-  border-color: rgba(87, 208, 255, 0.28);
+  background: rgba(49, 86, 66, 0.16);
+  border-color: rgba(143, 201, 163, 0.32);
 }
 
 .genetic-button:disabled {
@@ -309,16 +309,16 @@ input {
 }
 
 .genetic-button--secondary {
-  background: linear-gradient(135deg, rgba(255, 184, 76, 0.96), rgba(255, 120, 56, 0.96));
-  color: #16243b;
-  border-color: rgba(255, 184, 76, 0.36);
+  background: #20382d;
+  color: #f7faf6;
+  border-color: rgba(143, 201, 163, 0.36);
 }
 
 .genetic-button--secondary:hover,
 .genetic-button--secondary:focus-visible {
-  background: linear-gradient(135deg, rgba(255, 184, 76, 1), rgba(255, 120, 56, 1));
-  border-color: rgba(255, 184, 76, 0.42);
-  color: #f6fbff;
+  background: #315642;
+  border-color: rgba(143, 201, 163, 0.44);
+  color: #f7faf6;
 }
 
 .genetic-card--controls {
@@ -339,10 +339,10 @@ input {
 .genetic-slider {
   display: grid;
   gap: 10px;
-  padding: 14px 16px;
-  border-radius: 20px;
-  background: rgba(8, 16, 29, 0.64);
-  border: 1px solid rgba(121, 158, 219, 0.14);
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(8, 8, 10, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .genetic-slider div {
@@ -353,16 +353,16 @@ input {
 }
 
 .genetic-slider span {
-  color: #ccd9f0;
+  color: #dce8df;
 }
 
 .genetic-slider strong {
-  color: #7fd7ff;
+  color: #8fc9a3;
 }
 
 .genetic-slider input {
   width: 100%;
-  accent-color: #7fd7ff;
+  accent-color: #8fc9a3;
 }
 
 @media (max-width: 1080px) {
