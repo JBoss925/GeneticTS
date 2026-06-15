@@ -348,8 +348,8 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
               >
                 <defs>
                   <linearGradient id="geneticTargetGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#7dffb2" />
-                    <stop offset="100%" stopColor="#2fd7ff" />
+                    <stop offset="0%" stopColor="#dce8df" />
+                    <stop offset="100%" stopColor="#8fc9a3" />
                   </linearGradient>
                   <marker
                     id="geneticVelocityArrow"
@@ -360,7 +360,7 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                     markerHeight="7"
                     orient="auto-start-reverse"
                   >
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#7fd7ff" />
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#8fc9a3" />
                   </marker>
                   <marker
                     id="geneticWindArrow"
@@ -371,7 +371,7 @@ function GeneticTsPage({ standalone = false }: GeneticTsPageProps) {
                     markerHeight="6"
                     orient="auto-start-reverse"
                   >
-                    <path d="M 0 0 L 10 5 L 0 10 L 2.7 5 z" fill="#b8fff2" />
+                    <path d="M 0 0 L 10 5 L 0 10 L 2.7 5 z" fill="#dce8df" />
                   </marker>
                 </defs>
 

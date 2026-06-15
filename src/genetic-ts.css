@@ -205,34 +205,34 @@ input {
 }
 
 .genetic-scene__wind-vector {
-  stroke: #aef7e5;
+  stroke: #8fc9a3;
   stroke-width: 2.5;
   stroke-linecap: round;
   opacity: 0.92;
 }
 
 .genetic-scene__ghost {
-  stroke: rgba(135, 217, 255, 0.65);
+  stroke: rgba(143, 201, 163, 0.42);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .genetic-scene__best-path {
-  stroke: rgba(255, 191, 100, 0.96);
+  stroke: rgba(220, 232, 223, 0.96);
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .genetic-scene__target-halo {
-  fill: rgba(84, 242, 180, 0.16);
+  fill: rgba(143, 201, 163, 0.16);
   cursor: grab;
   touch-action: none;
 }
 
 .genetic-scene__target {
-  stroke: rgba(234, 255, 247, 0.9);
+  stroke: rgba(220, 232, 223, 0.92);
   stroke-width: 2;
   cursor: grab;
   touch-action: none;
@@ -242,11 +242,11 @@ input {
   pointer-events: auto;
   cursor: grab;
   touch-action: none;
-  stroke: rgba(21, 38, 68, 0.92);
+  stroke: rgba(32, 56, 45, 0.96);
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
-  fill: rgba(21, 38, 68, 0.92);
+  fill: rgba(32, 56, 45, 0.96);
   opacity: 0.92;
 }
 
@@ -264,18 +264,18 @@ input {
 }
 
 .genetic-scene__velocity-label {
-  fill: #d9f5ff;
+  fill: #dce8df;
   font-size: 15px;
   font-weight: 700;
   paint-order: stroke;
-  stroke: rgba(5, 9, 20, 0.9);
+  stroke: rgba(5, 5, 5, 0.92);
   stroke-width: 4px;
   stroke-linejoin: round;
 }
 
 .genetic-scene__ball {
-  fill: #fff5e6;
-  stroke: rgba(255, 183, 84, 0.75);
+  fill: #f4f4f2;
+  stroke: rgba(143, 201, 163, 0.78);
   stroke-width: 2;
 }
 
